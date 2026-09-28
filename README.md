@@ -100,8 +100,8 @@ Prerequisites: Python 3.10+ (and optional C++ compiler like `g++` or `clang++`).
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/hungnguyen/nexus-lob.git
-cd nexus-lob
+git clone https://github.com/Sh4cry/NexusLOB.git
+cd NexusLOB
 
 # 2. Install Python dependencies
 pip install -r server/requirements.txt
