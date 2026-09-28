@@ -1,0 +1,11 @@
+services:
+  nexus-lob:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus_lob_terminal
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+"""
+NexusLOB Master Launcher & Benchmark Utility
+-------------------------------------------
+Usage:
+  python run.py             # Start the full trading platform (Engine + Gateway + UI)
+  python run.py --bench     # Run the high-resolution C++20 latency benchmark
+  python run.py --test      # Run all C++ and Python unit test suites
+"""
+
+import sys
+import os
+import subprocess
+import argparse
+import webbrowser
+import time
+
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+ENGINE_DIR = os.path.join(PROJECT_ROOT, "engine")
+SERVER_DIR = os.path.join(PROJECT_ROOT, "server")
+WEB_DIR = os.path.join(PROJECT_ROOT, "web")
+
+def find_gxx():
+    candidates = [
+        "g++",
+        r"C:\msys64\ucrt64\bin\g++.exe",
+        r"C:\msys64\mingw64\bin\g++.exe",
+    ]
+    for c in candidates:
+        try:
+            res = subprocess.run([c, "--version"], capture_output=True, text=True)
+            if res.returncode == 0:
+                return c
+        except Exception:
+            continue
+    return None
+
+def build_engine():
+    dll_path = os.path.join(ENGINE_DIR, "nexus_engine.dll")
+    if os.path.exists(dll_path):
+        return True
+
+    gxx = find_gxx()
+    if not gxx:
+        print("[!] Warning: g++ compiler not found in PATH or standard MSYS2 locations.")
+        print("[*] NexusLOB will run with the built-in high-performance Python engine.")
+        return False
+
+    print(f"[*] Compiling C++20 engine with {gxx}...")
+    cmd = [
+        gxx,
+        "-std=c++20",
+        "-O3",
+        "-shared",
+        "-static",
+        "-static-libgcc",
+        "-static-libstdc++",
+        "-I", os.path.join(ENGINE_DIR, "include"),
+        os.path.join(ENGINE_DIR, "src", "OrderBook.cpp"),
+        os.path.join(ENGINE_DIR, "src", "C_API.cpp"),
+        "-o", dll_path,
+    ]
+    res = subprocess.run(cmd)
+    if res.returncode == 0:
+        print(f"[+] Engine DLL compiled successfully: {dll_path}")
+        return True
+    else:
+        print("[!] Engine compilation failed. Falling back to Python backend.")
+        return False
+
+def run_tests():
+    print("=" * 60)
+    print("  RUNNING NEXUSLOB COMPLETE TEST SUITE")
+    print("=" * 60)
+
+    # 1. C++ Matching Engine Tests
+    gxx = find_gxx()
+    if gxx:
+        test_exe = os.path.join(ENGINE_DIR, "tests", "test_matching.exe")
+        cmd = [
+            gxx, "-std=c++20", "-O3",
+            "-I", os.path.join(ENGINE_DIR, "include"),
+            os.path.join(ENGINE_DIR, "src", "OrderBook.cpp"),
+            os.path.join(ENGINE_DIR, "tests", "test_matching.cpp"),
+            "-o", test_exe
+        ]
+        subprocess.run(cmd, check=True)
+        subprocess.run([test_exe], check=True)
+
+    # 2. Python Gateway Tests
+    print("\n--- Python Gateway & WebSocket Tests ---")
+    sys.path.insert(0, SERVER_DIR)
+    from tests.run_tests import TestGateway
+    import unittest
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestGateway)
+    runner = unittest.TextTestRunner(verbosity=2)
+    res = runner.run(suite)
+    if not res.wasSuccessful():
+        sys.exit(1)
+
+def run_benchmark(orders=500000):
+    gxx = find_gxx()
+    if not gxx:
+        print("[!] Benchmark requires g++ compiler.")
+        return
+    bench_exe = os.path.join(ENGINE_DIR, "benchmarks", "main_benchmark.exe")
+    cmd = [
+        gxx, "-std=c++20", "-O3",
+        "-I", os.path.join(ENGINE_DIR, "include"),
+        os.path.join(ENGINE_DIR, "src", "OrderBook.cpp"),
+        os.path.join(ENGINE_DIR, "benchmarks", "main_benchmark.cpp"),
+        "-o", bench_exe
+    ]
+    subprocess.run(cmd, check=True)
+    subprocess.run([bench_exe, str(orders)], check=True)
+
+def start_server():
+    build_engine()
+    sys.path.insert(0, SERVER_DIR)
+
+    import uvicorn
+    print("\n" + "=" * 60)
+    print("  NEXUSLOB TRADING PLATFORM READY")
+    print("  Terminal URL: http://localhost:8000")
+    print("  API Docs    : http://localhost:8000/docs")
+    print("  WebSocket   : ws://localhost:8000/ws/market-data")
+    print("=" * 60 + "\n")
+
+    # Open browser after 1 second delay
+    def open_browser():
+        time.sleep(1.2)
+        webbrowser.open("http://localhost:8000")
+
+    import threading
+    threading.Thread(target=open_browser, daemon=True).start()
+
+    from app.main import app
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="NexusLOB Master Launcher")
+    parser.add_argument("--test", action="store_true", help="Run unit tests")
+    parser.add_argument("--bench", action="store_true", help="Run C++ latency benchmark")
+    parser.add_argument("--orders", type=int, default=500000, help="Order count for benchmark")
+    args = parser.parse_args()
+
+    if args.test:
+        run_tests()
+    elif args.bench:
+        run_benchmark(args.orders)
+    else:
+        start_server()
