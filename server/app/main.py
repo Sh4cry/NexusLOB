@@ -13,6 +13,7 @@ from app.engine_bridge import EngineBridge
 from app.market_maker import MarkovMarketMaker
 from app.models.avellaneda_stoikov import AvellanedaStoikovModel
 from app.models.data_replayer import HistoricalDataReplayer
+from app.agent.autonomous_feeder import AutonomousFeederAgent
 from app.schemas import (
     OrderRequest,
     OrderResponse,
@@ -41,6 +42,8 @@ as_bot.register_trade_callback(handle_trade)
 
 data_replayer = HistoricalDataReplayer(engine)
 data_replayer.register_trade_callback(handle_trade)
+
+feeder_agent = AutonomousFeederAgent(engine)
 
 # Load sample data if available
 sample_csv = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "sample_btc_ticks.csv"))
@@ -211,6 +214,26 @@ def load_custom_data(file_path: str):
         raise HTTPException(status_code=404, detail="File not found")
     count = data_replayer.load_csv(file_path)
     return {"status": "loaded", "ticks_count": count, "file": file_path}
+
+# --- Background Autonomous Screen & Web Agent Endpoints ---
+@app.get("/api/v1/agent/status")
+def get_agent_status():
+    return feeder_agent.get_status()
+
+@app.post("/api/v1/agent/start")
+async def start_agent(mode: str = Query("WEB_FEED", enum=["SCREEN_UIA", "WEB_FEED"]), symbol: str = "BTCUSDT", interval_sec: float = 1.0):
+    feeder_agent.start(mode=mode, symbol=symbol, interval_sec=interval_sec)
+    return {"status": "started", "config": feeder_agent.get_status()}
+
+@app.post("/api/v1/agent/stop")
+async def stop_agent():
+    feeder_agent.stop()
+    return {"status": "stopped"}
+
+@app.post("/api/v1/agent/scan-screen")
+async def scan_screen_now():
+    data = await feeder_agent.poll_once()
+    return data
 
 @app.post("/api/v1/orders", response_model=OrderResponse)
 def place_order(order: OrderRequest):

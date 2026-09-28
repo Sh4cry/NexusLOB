@@ -59,6 +59,22 @@ class TestGateway(unittest.TestCase):
         self.assertEqual(res_sel.json()["active_mode"], "AVELLANEDA_STOIKOV")
         print("[TEST] Model selection API: PASSED")
 
+    def test_agent_controls(self):
+        res = self.client.get("/api/v1/agent/status")
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("is_running", res.json())
+
+        # Start agent
+        res_start = self.client.post("/api/v1/agent/start?mode=WEB_FEED&symbol=BTCUSDT")
+        self.assertEqual(res_start.status_code, 200)
+        self.assertEqual(res_start.json()["status"], "started")
+
+        # Stop agent
+        res_stop = self.client.post("/api/v1/agent/stop")
+        self.assertEqual(res_stop.status_code, 200)
+        self.assertEqual(res_stop.json()["status"], "stopped")
+        print("[TEST] Background Autonomous Agent controls: PASSED")
+
     def test_stress_test_endpoint(self):
         res = self.client.post("/api/v1/stress-test", json={"order_count": 1000})
         self.assertEqual(res.status_code, 200)

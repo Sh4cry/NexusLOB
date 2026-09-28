@@ -210,6 +210,58 @@ export const OrderControls: React.FC<OrderControlsProps> = ({
         )}
       </form>
 
+      {/* Autonomous Background Screen & Web Agent Panel */}
+      <div className="border-t border-surfaceBorder/60 pt-3 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+            <span className="w-2 h-2 rounded-full bg-brandCyan animate-pulse inline-block" />
+            <span>Autonomous Screen & Web Agent</span>
+          </div>
+          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+            Zero-Screenshot
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 mt-1">
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/v1/agent/scan-screen', { method: 'POST' });
+                const d = await res.json();
+                setLastOrderMsg(`Screen Scan: ${d.symbol} @ $${d.mid_price}`);
+                setTimeout(() => setLastOrderMsg(null), 4000);
+              } catch (e) {
+                console.error(e);
+              }
+            }}
+            className="py-1.5 px-2 bg-surfaceBorder/50 hover:bg-surfaceBorder text-slate-200 rounded text-[11px] font-mono transition-colors text-center border border-surfaceBorder"
+          >
+            🔍 Scan Screen Now
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/v1/agent/start?mode=WEB_FEED&symbol=BTCUSDT', { method: 'POST' });
+                const d = await res.json();
+                setLastOrderMsg(`Live Agent Started (BTCUSDT)`);
+                setTimeout(() => setLastOrderMsg(null), 4000);
+              } catch (e) {
+                console.error(e);
+              }
+            }}
+            className="py-1.5 px-2 bg-brandCyan/10 hover:bg-brandCyan/20 text-brandCyan rounded text-[11px] font-mono transition-colors text-center border border-brandCyan/30"
+          >
+            ⚡ Stream Live Web
+          </button>
+        </div>
+        <p className="text-[10px] text-slate-500">
+          Directly reads UI element trees & web feeds into the C++ engine without pixel capture
+        </p>
+      </div>
+
       {/* Stress Benchmark Button */}
       <div className="border-t border-surfaceBorder/60 pt-3">
         <button
