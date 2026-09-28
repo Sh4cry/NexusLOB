@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #080B11;
+    color: #F1F5F9;
+  }
+}
+
+/* Custom scrollbars for high-frequency trading terminals */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0F141E;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+@keyframes flash-green {
+  0% { background-color: rgba(0, 242, 157, 0.4); }
+  100% { background-color: transparent; }
+}
+
+@keyframes flash-red {
+  0% { background-color: rgba(255, 59, 105, 0.4); }
+  100% { background-color: transparent; }
+}
+
+.flash-buy {
+  animation: flash-green 0.4s ease-out;
+}
+
+.flash-sell {
+  animation: flash-red 0.4s ease-out;
+}
