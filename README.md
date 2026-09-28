@@ -5,6 +5,7 @@
 
 [![CI Pipeline](https://img.shields.io/badge/CI-Passing-00E599?style=for-the-badge&logo=github-actions&logoColor=white)](.github/workflows/ci.yml)
 [![Standard](https://img.shields.io/badge/C%2B%2B-20-007ACC?style=for-the-badge&logo=c%2B%2B&logoColor=white)](https://en.cppreference.com/w/cpp/20)
+[![Version](https://img.shields.io/badge/Release-v1.1.1-00E599?style=for-the-badge)](https://github.com/Sh4cry/NexusLOB)
 [![Throughput](https://img.shields.io/badge/Throughput->4.0M%20ops%2Fsec-FF3B69?style=for-the-badge&logo=speedtest&logoColor=white)](#benchmarks)
 [![Latency](https://img.shields.io/badge/p99%20Latency-<0.80%20µs-7928CA?style=for-the-badge)](#benchmarks)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
