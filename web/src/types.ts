@@ -24,10 +24,25 @@ export interface Trade {
   timestamp_ns: number;
 }
 
+export interface ModelMetadata {
+  model_name?: string;
+  inventory?: number;
+  mid_price?: number;
+  reservation_price?: number;
+  volatility?: number;
+  optimal_spread?: number;
+  cash?: number;
+  total_pnl?: number;
+  markov_state?: number;
+  state_name?: string;
+  file?: string;
+  progress_pct?: number;
+}
+
 export interface SimState {
   running: boolean;
-  markov_state: number;
-  state_name: string;
+  active_mode: 'AVELLANEDA_STOIKOV' | 'MARKOV' | 'DATA_REPLAY';
+  metadata: ModelMetadata;
 }
 
 export interface MarketDataMessage {

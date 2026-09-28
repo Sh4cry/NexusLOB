@@ -86,6 +86,14 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleSelectModel = async (mode: 'AVELLANEDA_STOIKOV' | 'MARKOV' | 'DATA_REPLAY') => {
+    try {
+      await fetch(`/api/v1/models/select?mode=${mode}`, { method: 'POST' });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-slate-100 flex flex-col font-sans">
       <Header
@@ -94,6 +102,7 @@ export const App: React.FC = () => {
         backend={backend}
         orderCount={orderCount}
         isConnected={isConnected}
+        onSelectModel={handleSelectModel}
       />
 
       {/* Navigation Sub-bar */}

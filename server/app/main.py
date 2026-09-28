@@ -1,16 +1,18 @@
 import asyncio
 import time
 import json
-from typing import Set, List, Dict, Any
+import os
+from typing import Set, List, Dict, Any, Optional
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-import os
 
 from app.engine_bridge import EngineBridge
 from app.market_maker import MarkovMarketMaker
+from app.models.avellaneda_stoikov import AvellanedaStoikovModel
+from app.models.data_replayer import HistoricalDataReplayer
 from app.schemas import (
     OrderRequest,
     OrderResponse,
@@ -19,11 +21,10 @@ from app.schemas import (
     StressTestResult,
 )
 
-# Global Engine & Market Maker instances
+# Global Engine Instance
 engine = EngineBridge()
-market_maker = MarkovMarketMaker(engine, base_price=100.0, tick_size=0.05)
 
-# Recent trade buffer (last 50 trades)
+# Trade Buffer
 recent_trades: List[Dict[str, Any]] = []
 
 def handle_trade(trade: Dict[str, Any]):
@@ -31,7 +32,27 @@ def handle_trade(trade: Dict[str, Any]):
     if len(recent_trades) > 100:
         recent_trades.pop()
 
-market_maker.register_trade_callback(handle_trade)
+# Instantiate Models
+markov_bot = MarkovMarketMaker(engine, base_price=100.0, tick_size=0.05)
+markov_bot.register_trade_callback(handle_trade)
+
+as_bot = AvellanedaStoikovModel(engine, gamma=0.1, kappa=1.5, tick_size=0.05)
+as_bot.register_trade_callback(handle_trade)
+
+data_replayer = HistoricalDataReplayer(engine)
+data_replayer.register_trade_callback(handle_trade)
+
+# Load sample data if available
+sample_csv = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "sample_btc_ticks.csv"))
+if os.path.exists(sample_csv):
+    try:
+        data_replayer.load_csv(sample_csv)
+    except Exception as e:
+        print(f"[Warning] Could not load sample CSV: {e}")
+
+# Active Simulation Mode: "MARKOV", "AVELLANEDA_STOIKOV", "DATA_REPLAY"
+active_model_mode = "AVELLANEDA_STOIKOV"
+sim_is_running = True
 
 # WebSocket connection manager
 class ConnectionManager:
@@ -59,21 +80,49 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# Background broadcast loop (20-30 updates/sec)
+# Background Simulation Step Loop
+async def simulation_loop():
+    global sim_is_running, active_model_mode
+    while True:
+        try:
+            if sim_is_running:
+                if active_model_mode == "MARKOV":
+                    await markov_bot.step()
+                elif active_model_mode == "AVELLANEDA_STOIKOV":
+                    await as_bot.step()
+                elif active_model_mode == "DATA_REPLAY":
+                    await data_replayer.step()
+        except Exception as e:
+            print(f"[Sim Error] {e}")
+        await asyncio.sleep(0.06) # ~16 Hz execution rate
+
+# Background WebSocket Broadcast Loop (20 updates/sec)
 async def market_data_broadcaster():
     while True:
         try:
             if manager.active_connections:
                 l2 = engine.get_l2_depth(depth=15)
+                model_meta = {}
+                if active_model_mode == "AVELLANEDA_STOIKOV":
+                    model_meta = as_bot.get_metrics()
+                elif active_model_mode == "DATA_REPLAY":
+                    model_meta = data_replayer.get_progress()
+                else:
+                    model_meta = {
+                        "model_name": "Markov Chain (Microstructure)",
+                        "markov_state": markov_bot.current_state,
+                        "state_name": ["Low Depth", "Medium Depth", "High Depth"][markov_bot.current_state]
+                    }
+
                 payload = {
                     "type": "SNAPSHOT",
                     "data": l2,
                     "recent_trades": recent_trades[:25],
                     "order_count": engine.order_count(),
                     "sim_state": {
-                        "running": market_maker.is_running,
-                        "markov_state": market_maker.current_state,
-                        "state_name": ["Low Depth", "Medium Depth", "High Depth"][market_maker.current_state]
+                        "running": sim_is_running,
+                        "active_mode": active_model_mode,
+                        "metadata": model_meta,
                     },
                     "backend": "C++20 (Low-Latency)" if engine.is_cpp_backend else "Python",
                 }
@@ -84,19 +133,18 @@ async def market_data_broadcaster():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Seed initial order book and start simulator
-    await market_maker.initialize_book()
-    market_maker.start(interval_ms=60)
+    # Initialize initial state
+    await as_bot.initialize_book()
+    sim_task = asyncio.create_task(simulation_loop())
     broadcaster_task = asyncio.create_task(market_data_broadcaster())
     yield
-    # Shutdown
-    market_maker.stop()
+    sim_task.cancel()
     broadcaster_task.cancel()
 
 app = FastAPI(
     title="NexusLOB Real-Time Matching Engine Gateway",
-    description="Ultra-low latency institutional limit order book matching engine & market data gateway",
-    version="1.0.0",
+    description="Ultra-low latency institutional limit order book matching engine with adaptive quantitative models",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
@@ -113,6 +161,7 @@ def get_health():
     return {
         "status": "healthy",
         "engine_backend": "C++20 Native" if engine.is_cpp_backend else "Python Fallback",
+        "active_model": active_model_mode,
         "orders_in_book": engine.order_count(),
         "timestamp_ns": time.time_ns(),
     }
@@ -121,9 +170,50 @@ def get_health():
 def get_depth(depth: int = Query(15, ge=1, le=50)):
     return engine.get_l2_depth(depth=depth)
 
+@app.get("/api/v1/models")
+def get_models():
+    return {
+        "active_mode": active_model_mode,
+        "available_models": [
+            {
+                "id": "AVELLANEDA_STOIKOV",
+                "name": "Avellaneda-Stoikov (Adaptive)",
+                "description": "Optimal market making adapting quotes to rolling volatility and inventory risk."
+            },
+            {
+                "id": "MARKOV",
+                "name": "Markov Chain (Microstructure)",
+                "description": "3-state discrete Markov chain modeling regime transitions and queue depth."
+            },
+            {
+                "id": "DATA_REPLAY",
+                "name": "Historical Tick Replayer",
+                "description": "Replays arbitrary CSV market tick data through the C++ matching engine."
+            }
+        ]
+    }
+
+@app.post("/api/v1/models/select")
+async def select_model(mode: str = Query(..., enum=["AVELLANEDA_STOIKOV", "MARKOV", "DATA_REPLAY"])):
+    global active_model_mode
+    active_model_mode = mode
+    if mode == "AVELLANEDA_STOIKOV":
+        await as_bot.initialize_book()
+    elif mode == "MARKOV":
+        await markov_bot.initialize_book()
+    elif mode == "DATA_REPLAY":
+        engine.clear()
+    return {"status": "success", "active_mode": active_model_mode}
+
+@app.post("/api/v1/data/load")
+def load_custom_data(file_path: str):
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    count = data_replayer.load_csv(file_path)
+    return {"status": "loaded", "ticks_count": count, "file": file_path}
+
 @app.post("/api/v1/orders", response_model=OrderResponse)
 def place_order(order: OrderRequest):
-    start_ns = time.time_ns()
     order_id, trades = engine.add_order(
         order_id=order.id,
         side=order.side.value,
@@ -149,13 +239,15 @@ def cancel_order(order_id: int):
     return {"order_id": order_id, "status": "CANCELLED"}
 
 @app.post("/api/v1/simulation/start")
-def start_simulation(speed_ms: int = 60):
-    market_maker.start(interval_ms=speed_ms)
-    return {"status": "started", "speed_ms": speed_ms}
+def start_simulation():
+    global sim_is_running
+    sim_is_running = True
+    return {"status": "started"}
 
 @app.post("/api/v1/simulation/stop")
 def stop_simulation():
-    market_maker.stop()
+    global sim_is_running
+    sim_is_running = False
     return {"status": "stopped"}
 
 @app.post("/api/v1/stress-test", response_model=StressTestResult)
@@ -169,7 +261,6 @@ def run_stress_test(req: StressTestRequest):
 
     for i in range(1, count + 1):
         side = "BUY" if (i % 2 == 0) else "SELL"
-        # 70% Limit, 30% Crossing
         price = 100.0 + (i % 20) * 0.05
         t0 = time.perf_counter_ns()
         _, trades = engine.add_order(
@@ -201,7 +292,6 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            # Client can send control messages or keepalive pings
             text = await websocket.receive_text()
             data = json.loads(text)
             if data.get("action") == "PING":
@@ -211,7 +301,6 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception:
         manager.disconnect(websocket)
 
-# Serve web build if dist exists
 dist_dir = os.path.join(os.path.dirname(__file__), "..", "..", "web", "dist")
 if os.path.exists(dist_dir):
     app.mount("/", StaticFiles(directory=dist_dir, html=True), name="static")

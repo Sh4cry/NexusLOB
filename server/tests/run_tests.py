@@ -48,6 +48,17 @@ class TestGateway(unittest.TestCase):
         self.assertEqual(data["symbol"], "APEX/USD")
         print("[TEST] L2 depth query: PASSED")
 
+    def test_models_selection(self):
+        res = self.client.get("/api/v1/models")
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("available_models", res.json())
+
+        # Select Avellaneda-Stoikov
+        res_sel = self.client.post("/api/v1/models/select?mode=AVELLANEDA_STOIKOV")
+        self.assertEqual(res_sel.status_code, 200)
+        self.assertEqual(res_sel.json()["active_mode"], "AVELLANEDA_STOIKOV")
+        print("[TEST] Model selection API: PASSED")
+
     def test_stress_test_endpoint(self):
         res = self.client.post("/api/v1/stress-test", json={"order_count": 1000})
         self.assertEqual(res.status_code, 200)
