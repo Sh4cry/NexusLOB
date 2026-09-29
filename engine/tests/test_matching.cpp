@@ -137,6 +137,82 @@ void testFillOrKill() {
     std::cout << "PASSED\n";
 }
 
+void testImmediateOrCancel() {
+    std::cout << "[TEST] Running testImmediateOrCancel... ";
+    OrderBook book;
+    // Maker Sell: 25 units at $100.00
+    book.addOrder(1, Side::SELL, OrderType::LIMIT, 10000, 25);
+    assert(book.orderCount() == 1);
+
+    // Taker IOC Buy for 60 units at $100.00:
+    // Should partially fill 25 units, cancel the remaining 35 units, and NOT rest in book
+    auto trades = book.addOrder(2, Side::BUY, OrderType::IOC, 10000, 60);
+    assert(trades.size() == 1);
+    assert(trades[0].quantity == 25);
+    assert(book.orderCount() == 0); // Maker filled, IOC remainder cancelled
+    assert(!book.hasOrder(2));     // Taker was not placed on book
+    std::cout << "PASSED\n";
+}
+
+void testDuplicateOrderIdRejection() {
+    std::cout << "[TEST] Running testDuplicateOrderIdRejection... ";
+    OrderBook book;
+    auto trades1 = book.addOrder(42, Side::BUY, OrderType::LIMIT, 10000, 50);
+    assert(trades1.empty());
+    assert(book.orderCount() == 1);
+
+    // Attempt to insert duplicate order ID 42 -> must be rejected cleanly
+    auto trades2 = book.addOrder(42, Side::SELL, OrderType::LIMIT, 10000, 50);
+    assert(trades2.empty());
+    assert(book.orderCount() == 1);
+    assert(book.getOrder(42)->side == Side::BUY); // Original order preserved intact
+    std::cout << "PASSED\n";
+}
+
+void testInvalidZeroQuantity() {
+    std::cout << "[TEST] Running testInvalidZeroQuantity... ";
+    OrderBook book;
+    // Inserting order with quantity = 0 -> must be rejected
+    auto trades = book.addOrder(99, Side::BUY, OrderType::LIMIT, 10000, 0);
+    assert(trades.empty());
+    assert(book.orderCount() == 0);
+    assert(!book.hasOrder(99));
+    std::cout << "PASSED\n";
+}
+
+void testL2DepthSnapshotInvariants() {
+    std::cout << "[TEST] Running testL2DepthSnapshotInvariants... ";
+    OrderBook book;
+    book.addOrder(1, Side::BUY, OrderType::LIMIT, 10000, 15);
+    book.addOrder(2, Side::BUY, OrderType::LIMIT, 10000, 25); // Aggregated at level 10000 -> 40 qty, 2 orders
+    book.addOrder(3, Side::BUY, OrderType::LIMIT, 9950, 60);
+
+    book.addOrder(4, Side::SELL, OrderType::LIMIT, 10050, 10);
+    book.addOrder(5, Side::SELL, OrderType::LIMIT, 10100, 50);
+
+    assert(book.getBidVolume() == 100);
+    assert(book.getAskVolume() == 60);
+
+    auto snap = book.getL2Snapshot(5);
+    assert(snap.bids.size() == 2);
+    assert(snap.asks.size() == 2);
+
+    // Verify bid price descending
+    assert(snap.bids[0].price == 10000);
+    assert(snap.bids[0].quantity == 40);
+    assert(snap.bids[0].orderCount == 2);
+    assert(snap.bids[1].price == 9950);
+    assert(snap.bids[1].quantity == 60);
+
+    // Verify ask price ascending
+    assert(snap.asks[0].price == 10050);
+    assert(snap.asks[0].quantity == 10);
+    assert(snap.asks[1].price == 10100);
+    assert(snap.asks[1].quantity == 50);
+
+    std::cout << "PASSED\n";
+}
+
 int main() {
     std::cout << "==========================================\n";
     std::cout << "   NoxusLOB Matching Engine Unit Tests    \n";
@@ -150,9 +226,13 @@ int main() {
     testOrderModification();
     testMarketOrder();
     testFillOrKill();
+    testImmediateOrCancel();
+    testDuplicateOrderIdRejection();
+    testInvalidZeroQuantity();
+    testL2DepthSnapshotInvariants();
 
     std::cout << "==========================================\n";
-    std::cout << "   ALL 8 TEST SUITES PASSED CLEANLY!      \n";
+    std::cout << "   ALL 12 TEST SUITES PASSED CLEANLY!     \n";
     std::cout << "==========================================\n";
     return 0;
 }

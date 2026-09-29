@@ -1,8 +1,14 @@
 import re
 import time
 from typing import Dict, Any, List, Optional
-import win32gui
-import win32process
+try:
+    import win32gui
+    import win32process
+    WIN32_AVAILABLE = True
+except ImportError:
+    win32gui = None
+    win32process = None
+    WIN32_AVAILABLE = False
 
 try:
     import uiautomation as auto
@@ -16,6 +22,7 @@ class ScreenReaderAgent:
     Inspects active application windows (Chrome, Edge, TradingView, etc.)
     directly via the Windows UI Automation (UIA) accessibility tree.
     Reads digital text, labels, and table cells from the screen WITHOUT screenshots.
+    Gracefully disables on non-Windows (e.g. Linux CI) environments.
     """
 
     PRICE_REGEX = re.compile(r'[$€£]?\s*([0-9]{1,6}(?:,[0-9]{3})*(?:\.[0-9]{1,4})?)')
@@ -29,6 +36,9 @@ class ScreenReaderAgent:
 
     def find_target_windows(self) -> List[Dict[str, Any]]:
         """Finds running browser or financial windows on the screen."""
+        if not WIN32_AVAILABLE or not win32gui:
+            return []
+
         found_windows = []
 
         def enum_cb(hwnd, extra):

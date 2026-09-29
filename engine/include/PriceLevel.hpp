@@ -3,7 +3,7 @@
 #include "Order.hpp"
 #include <cstdint>
 
-namespace nexus {
+namespace noxus {
 
 class PriceLevel {
 public:
@@ -72,4 +72,4 @@ private:
     Order* m_tail{nullptr};
 };
 
-} // namespace nexus
+} // namespace noxus

@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <cassert>
 
-namespace nexus {
+namespace noxus {
 
 template <typename T, size_t BlockSize = 100000>
 class MemoryPool {
@@ -68,4 +68,4 @@ private:
 
 using OrderPool = MemoryPool<Order>;
 
-} // namespace nexus
+} // namespace noxus

@@ -2,7 +2,7 @@
 
 #include "Types.hpp"
 
-namespace nexus {
+namespace noxus {
 
 struct Order {
     OrderId id{0};
@@ -34,4 +34,4 @@ struct Order {
     }
 };
 
-} // namespace nexus
+} // namespace noxus

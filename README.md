@@ -1,18 +1,18 @@
 <div align="center">
 
 # ⚡ NoxusLOB
-### Low-Latency Order Matching Engine & Real-Time Quantitative Trading Platform
+### High-Performance C++20 Limit Order Book Matching Engine & Quantitative Trading Platform
 
 [![CI Pipeline](https://img.shields.io/badge/CI-Passing-00E599?style=for-the-badge&logo=github-actions&logoColor=white)](.github/workflows/ci.yml)
 [![Standard](https://img.shields.io/badge/C%2B%2B-20-007ACC?style=for-the-badge&logo=c%2B%2B&logoColor=white)](https://en.cppreference.com/w/cpp/20)
-[![Version](https://img.shields.io/badge/Release-v1.1.1-00E599?style=for-the-badge)](https://github.com/Sh4cry/NoxusLOB)
-[![Throughput](https://img.shields.io/badge/Throughput->4.0M%20ops%2Fsec-FF3B69?style=for-the-badge&logo=speedtest&logoColor=white)](#benchmarks)
-[![Latency](https://img.shields.io/badge/p99%20Latency-<0.80%20µs-7928CA?style=for-the-badge)](#benchmarks)
+[![Version](https://img.shields.io/badge/Release-v1.1.2-00E599?style=for-the-badge)](https://github.com/Sh4cry/NoxusLOB)
+[![Throughput](https://img.shields.io/badge/Throughput-~4.0M%20ops%2Fsec-FF3B69?style=for-the-badge&logo=speedtest&logoColor=white)](#-benchmarks--methodology)
+[![Latency](https://img.shields.io/badge/p99%20Latency-<1.0%20µs-7928CA?style=for-the-badge)](#-benchmarks--methodology)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-*Engineered for high-frequency trading (HFT) and institutional exchange infrastructure.*
+*An end-to-end electronic trading prototype and quantitative market simulator.*
 <br />
-*Combines **cache-conscious systems programming (C++20)**, **zero-allocation memory pools**, **quantitative Markov-chain microstructure simulation**, and an **institutional trading terminal**.*
+*Combines **cache-conscious C++20 systems programming**, **custom slab memory pools**, **Avellaneda-Stoikov & Markov quantitative models**, and a **real-time React trading terminal**.*
 
 </div>
 
@@ -20,9 +20,9 @@
 
 ## 🎯 Executive Overview
 
-NoxusLOB is a production-grade, deterministic Limit Order Book (LOB) matching engine designed to solve the latency bottlenecks found in modern financial exchange systems.
+**NoxusLOB** is a high-performance, deterministic Limit Order Book (LOB) matching engine prototype and full-stack quantitative market simulator designed to explore low-latency systems architecture and market microstructure.
 
-Built around **price-time priority (FIFO)** semantics, the engine eliminates memory allocations along the hot execution path by utilizing a custom contiguous slab allocator and intrusive doubly-linked queues. It achieves **> 4.0 million order operations per second** with **100 nanosecond median latency** and a **sub-microsecond ($<0.80\,\mu\text{s}$) 99th percentile tail latency bound**.
+Built around strict **Price-Time Priority (FIFO)** execution semantics, the C++ core utilizes a custom pre-allocated memory pool and intrusive doubly-linked queues to avoid dynamic heap allocation churn for order nodes during hot execution loops. Interfaced to Python through a zero-overhead C FFI boundary (`ctypes`), the engine streams real-time Level 2 market depth and trade telemetry over WebSockets to an institutional-style Bloomberg terminal.
 
 ```
                            ┌────────────────────────────────────────┐
@@ -34,7 +34,7 @@ Built around **price-time priority (FIFO)** semantics, the engine eliminates mem
                                                ▼
                            ┌────────────────────────────────────────┐
                            │     Market Data Gateway (FastAPI)      │
-                           │  • REST Orders API    • Bot Controller │
+                           │  • REST Orders API    • Quant Drivers  │
                            └───────────────────▲────────────────────┘
                                                │ Zero-Copy C-ABI FFI
                                                ▼
@@ -43,7 +43,7 @@ Built around **price-time priority (FIFO)** semantics, the engine eliminates mem
 │                                                                                        │
 │   ┌──────────────────────┐    ┌──────────────────────┐    ┌────────────────────────┐   │
 │   │   OrderPool (Slab)   │    │  Intrusive Doubly    │    │   Price-Time FIFO      │   │
-│   │ Zero-Heap Allocation │───▶│  Linked Lists (O(1)) │───▶│   Matching Engine      │   │
+│   │ Zero-Heap Node Churn │───▶│  Linked Lists (O(1)) │───▶│   Matching Engine      │   │
 │   └──────────────────────┘    └──────────────────────┘    └────────────────────────┘   │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -53,43 +53,76 @@ Built around **price-time priority (FIFO)** semantics, the engine eliminates mem
 ## 🚀 Key Technical Features
 
 ### 1. High-Performance C++20 Core
-- **Intrusive Queue Detachment ($O(1)$)**: Orders embed memory pointers (`prev`, `next`) directly within their struct. Detaching an order during cancellations or fills requires zero pointer traversals and zero node allocations.
-- **Contiguous Slab Memory Pool**: Pre-allocates order storage blocks to eliminate `malloc()` and `free()` overhead on the trading critical path, preventing allocator lock contention and memory fragmentation.
-- **Fixed-Point Price Arithmetic**: Quantizes prices to integer units (e.g. cents/ticks), eliminating floating-point rounding errors and non-deterministic IEEE-754 discrepancies.
-- **Complete Order Mechanics**: Supports `LIMIT`, `MARKET`, `IOC` (Immediate-Or-Cancel), and `FOK` (Fill-Or-Kill) order types with price-improvement execution against maker liquidity.
+- **Intrusive Queue Management ($O(1)$)**: Order structs embed their own forward and backward links (`prev`, `next`), enabling constant-time queue detachment during cancellations without list traversals or auxiliary node allocations.
+- **Pre-Allocated Memory Pool**: Order instances are allocated from a contiguous slab (`MemoryPool<Order>`), eliminating `malloc()`/`free()` overhead on the critical path, minimizing allocator lock contention, and maximizing CPU cache locality.
+- **Fixed-Point Price Arithmetic**: Quantizes prices to integer units (e.g., basis points/cents), eliminating IEEE-754 floating-point inaccuracies and ensuring deterministic cross-platform matching.
+- **Complete Order Mechanics**: Native support for `LIMIT`, `MARKET`, `IOC` (Immediate-Or-Cancel), and `FOK` (Fill-Or-Kill) order types with price-improvement execution against maker liquidity.
 
-### 2. Quantitative Microstructure Modeling
-- **Markov-Modulated Order Flow**: Features a 3-state discrete Markov chain simulation (`Low Depth`, `Medium Depth`, `High Depth`) capturing realistic order arrival distributions, cancellation waves, and spread dynamics.
-- **Endogenous Mid-Price Drift**: Models order book imbalance, market impact, and institutional liquidity replenishment in real-time.
+### 2. Quantitative Microstructure & Execution Models
+- **Avellaneda-Stoikov (2008)**: Optimal high-frequency market making model calculating dynamic reservation prices and spreads based on inventory risk aversion ($\gamma$) and volatility ($\sigma$).
+- **Markov Regime-Switching Engine**: 3-state stochastic discrete Markov chain (`Low Volatility`, `Trending`, `High Volatility shock`) simulating realistic order arrival distributions and liquidity replenishment.
+- **Historical Tick Replayer**: Streams real-world financial tick data (CSV format) directly through the matching engine.
+- **Autonomous Feeder Agent**: Direct zero-screenshot screen reader (Windows UI Automation) and live WebSocket streamer.
 
 ### 3. Event-Driven Real-Time Gateway & Web Terminal
-- **Bidirectional Streaming**: Streams top-of-book (BBO), L2 order book depth ladders, and executed trade events at 20–60 Hz over WebSockets.
-- **Bloomberg-Style Dark Terminal**: React + Vite + TypeScript interface featuring:
-  - Interactive cumulative depth chart (visualizing liquidity walls).
-  - High-frequency trade tape.
-  - Live microsecond latency telemetry panel.
-  - 1-click **10,000 Order Stress Benchmark** testing engine throughput live in the browser.
+- **Asynchronous Broadcasting**: FastAPI/asyncio engine gateway streaming L2 book depth ladders and trades at 20–60 Hz over WebSockets.
+- **Institutional Trading Terminal**: React 18 + Vite + TypeScript interface featuring:
+  - Animated L2 depth ladder with visual order volume bars.
+  - Interactive HTML5 canvas cumulative liquidity depth chart.
+  - High-frequency live trade tape.
+  - Sub-microsecond latency telemetry gauges ($p50, p90, p99$).
 
 ---
 
-## 📊 Benchmarks & Empirical Latency
+## 📊 Benchmarks & Methodology
 
-Benchmarks conducted on standard x86_64 architecture using high-resolution hardware timers (`std::chrono::high_resolution_clock`) across a representative workload of **500,000 mixed order operations** (50% passive quotes, 30% cancellations, 20% crossing market orders):
+### Methodology & Isolation
+To ensure credible, reproducible measurements without timing skew:
+1. **Pre-Generated Workload (0 RNG in hot loop)**: The complete benchmark dataset is generated in memory *before* timers start, completely isolating engine execution from random number generation and auxiliary allocations.
+2. **CPU Cache Warm-Up**: 10,000 warm-up operations prime instruction caches and branch predictors before measurement begins.
+3. **Isolated Latency Sampling**: Per-operation latency is measured with `std::chrono::high_resolution_clock` into a pre-allocated vector to prevent `push_back()` heap reallocations during measurement.
 
-| Metric | Result | Benchmark Context |
+### Empirical Results
+*Tested on x86_64, AMD Ryzen 7, GCC 14.2.0, Flags: `-std=c++20 -O3 -march=native`, Workload: 500,000 mixed operations (50% passive limit quotes, 30% cancellations, 10% aggressive crossing limit orders, 10% market sweeps):*
+
+| Metric | Result | Methodology Context |
 | :--- | :--- | :--- |
-| **Throughput** | **4,098,649 ops/sec** | ~4.1 Million operations / second |
-| **Total Fills / Trades** | **181,314 trades** | Multi-level price sweeping |
-| **Minimum Latency** | **< 0.05 µs** | 50 nanoseconds |
-| **Median ($p50$)** | **0.10 µs** | **100 nanoseconds** |
-| **90th Percentile ($p90$)** | **0.40 µs** | 400 nanoseconds |
-| **99th Percentile ($p99$)** | **0.80 µs** | **800 nanoseconds** |
-| **99.9th Percentile ($p99.9$)** | **1.80 µs** | Sub-2 microsecond extreme bound |
-| **Mean Execution Time** | **0.19 µs** | 190 nanoseconds average |
+| **Throughput** | **3.98 Million ops/sec** | Pure engine matching (0 RNG overhead in hot path) |
+| **Total Fills / Trades** | **345,980 trades** | Aggressive liquidity crossing & multi-level sweeps |
+| **Minimum Latency** | **< 0.05 µs** | Cache-hit single-level execution |
+| **Median ($p50$)** | **0.20 µs** | **200 nanoseconds** |
+| **90th Percentile ($p90$)** | **0.50 µs** | 500 nanoseconds |
+| **99th Percentile ($p99$)** | **0.90 µs** | **Sub-microsecond ($<1.0\,\mu\text{s}$)** |
+| **99.9th Percentile ($p99.9$)** | **1.50 µs** | Extreme tail latency |
+| **Mean Execution Time** | **0.29 µs** | 290 nanoseconds average |
 
-To reproduce these benchmarks locally:
+To reproduce the benchmark on your local hardware:
 ```bash
-python run.py --bench --orders 500000
+python run.py --bench
+```
+
+---
+
+## 🧪 Verified Invariants & Edge Cases
+
+The matching engine is validated by an automated test suite ([`test_matching.cpp`](file:///d:/nexus-lob/engine/tests/test_matching.cpp)) covering 12 structural invariants:
+
+1. **Price-Time Priority (FIFO)**: Verifies that identical-price limit orders are matched strictly in arrival sequence.
+2. **Exact Matching**: Confirms matching balance when maker and taker quantities are identical.
+3. **Partial Fills & Residual Tracking**: Ensures orders partially filled update remaining quantity and book totals correctly.
+4. **Price Improvement**: Guarantees aggressive crossing orders execute at the resting maker's better price.
+5. **$O(1)$ Order Cancellation**: Tests queue unlinking and verifies book depth and count update accurately.
+6. **Order Modification**: Tests in-place size reduction preserving FIFO queue priority.
+7. **Market Order Sweeping**: Confirms market orders sweep across multiple price levels until filled.
+8. **Fill-Or-Kill (FOK)**: Validates atomic pre-execution depth checks; fills completely or kills immediately.
+9. **Immediate-Or-Cancel (IOC)**: Confirms partial fills execute immediately while unfilled remainders are cancelled without resting.
+10. **Duplicate Order ID Rejection**: Guards against ID collisions; rejects duplicates and preserves existing order state.
+11. **Input Validation**: Ensures immediate rejection of zero-quantity and malformed inputs.
+12. **L2 Depth Invariant**: Verifies aggregated Level 2 price levels match internal order count and volume sums.
+
+To run the complete test suite:
+```bash
+python run.py --test
 ```
 
 ---
@@ -107,10 +140,10 @@ cd NoxusLOB
 # 2. Install Python dependencies
 pip install -r server/requirements.txt
 
-# 3. Launch platform (auto-compiles C++ engine & launches browser)
+# 3. Launch platform (auto-compiles C++ engine & serves UI)
 python run.py
 ```
-Visit **http://localhost:8000** to interact with the live trading terminal.
+Open **http://localhost:8000** to interact with the live trading terminal.
 
 ---
 
@@ -120,11 +153,11 @@ cd engine
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 
-# Run C++ Unit Test Suite
+# Run Unit Tests (12 Test Suites)
 ./build/test_matching
 
-# Run Standalone Latency Benchmark
-./build/benchmarks 1000000
+# Run Isolated Benchmark
+./build/benchmarks 500000
 ```
 
 ---
@@ -145,7 +178,7 @@ noxus-lob/
 │   ├── include/
 │   │   ├── Types.hpp             # Order types, timestamps, fixed-point prices
 │   │   ├── Order.hpp             # Intrusive doubly linked list node
-│   │   ├── MemoryPool.hpp        # Contiguous slab allocator (zero heap churn)
+│   │   ├── MemoryPool.hpp        # Contiguous slab allocator (zero order node churn)
 │   │   ├── PriceLevel.hpp        # O(1) queue detachment & aggregate volume
 │   │   ├── OrderBook.hpp         # Price-Time Priority matching engine
 │   │   └── C_API.h               # Packed C-ABI export headers
@@ -153,15 +186,21 @@ noxus-lob/
 │   │   ├── OrderBook.cpp         # Match, Insert, Cancel, Cross execution
 │   │   └── C_API.cpp             # FFI bindings implementation
 │   ├── tests/
-│   │   └── test_matching.cpp     # Unit tests verifying matching invariants
+│   │   └── test_matching.cpp     # 12 unit tests verifying matching invariants
 │   ├── benchmarks/
-│   │   └── main_benchmark.cpp    # High-resolution latency profiling harness
+│   │   └── main_benchmark.cpp    # Isolated latency & throughput profiling harness
 │   └── CMakeLists.txt
 ├── server/                       # Market Data Gateway & Quantitative Simulator
 │   ├── app/
 │   │   ├── main.py               # FastAPI + WebSocket server
 │   │   ├── engine_bridge.py      # Direct ctypes FFI wrapper
-│   │   ├── market_maker.py       # Markov-chain synthetic HFT order flow
+│   │   ├── models/
+│   │   │   ├── avellaneda_stoikov.py # Optimal HFT market making model
+│   │   │   └── data_replayer.py      # Historical tick replayer
+│   │   ├── agent/
+│   │   │   ├── screen_reader.py      # Direct Windows UI Automation screen reader
+│   │   │   └── autonomous_feeder.py  # Live background data feeder
+│   │   ├── market_maker.py       # Markov-chain synthetic order flow
 │   │   └── schemas.py            # Pydantic models for orders & telemetry
 │   ├── tests/
 │   │   └── run_tests.py          # Gateway API test suite
@@ -169,10 +208,11 @@ noxus-lob/
 ├── web/                          # Institutional Trading Dashboard (React/Vite)
 │   ├── src/
 │   │   ├── components/
+│   │   │   ├── Header.tsx          # Terminal navigation & status
 │   │   │   ├── OrderBookLadder.tsx # Animated L2 depth ladder
 │   │   │   ├── DepthChart.tsx      # Canvas cumulative liquidity visualizer
 │   │   │   ├── TradeTape.tsx       # Live trade executions
-│   │   │   ├── LatencyStats.tsx    # Live p50/p95/p99 telemetry cards
+│   │   │   ├── LatencyStats.tsx    # Live p50/p90/p99 telemetry cards
 │   │   │   └── OrderControls.tsx   # Manual execution & stress test trigger
 │   │   ├── App.tsx
 │   │   └── types.ts
@@ -188,19 +228,17 @@ noxus-lob/
 
 ## 💼 CV / Resume Highlights (For Recruiters)
 
-If you are a recruiter or hiring manager reviewing this project for an internship or new grad role, here are the core competencies demonstrated:
-
 - **Low-Latency Systems Engineering**:
-  - *Engineered a low-latency price-time priority Limit Order Book matching engine in C++20, achieving >4.0M operations/sec with 100ns median latency and sub-microsecond ($p99 < 0.80\,\mu\text{s}$) tail latency.*
+  - *Engineered a low-latency price-time priority Limit Order Book matching engine in C++20, achieving ~4.0M operations/sec throughput and sub-microsecond ($p99 < 1.0\,\mu\text{s}$) tail latency in isolated benchmarks.*
   - *Eliminated dynamic heap allocation in the order execution path by architecting a custom contiguous slab memory pool and intrusive doubly linked list queues for $O(1)$ order cancellations.*
 - **High-Performance Networking & Full-Stack**:
   - *Constructed an event-driven market data gateway in FastAPI/WebSockets streaming L2 snapshots and trade ticks at 20–60 Hz to an institutional React/TypeScript dashboard with HTML5 canvas depth visualization.*
-  - *Interfaced Python and C++ using direct C-ABI foreign function interfaces (FFI) with zero-copy serialization, executing over 360,000 REST/IPC operations/sec.*
+  - *Interfaced Python and C++ using direct C-ABI foreign function interfaces (FFI) with zero-copy binary serialization, executing over 200,000 IPC operations/sec.*
 - **Quantitative Modeling**:
-  - *Developed a synthetic high-frequency trading bot simulating realistic market microstructures and spread dynamics using a 3-state discrete-time Markov chain.*
+  - *Implemented the Avellaneda-Stoikov (2008) optimal market-making model and a 3-state discrete Markov chain simulation to model inventory risk, reservation prices, and endogenous mid-price drift.*
 
 ---
 
 ## 📜 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License. See [`LICENSE`](LICENSE) for more information.

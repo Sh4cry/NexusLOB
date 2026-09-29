@@ -1,7 +1,7 @@
 #include "OrderBook.hpp"
 #include <algorithm>
 
-namespace nexus {
+namespace noxus {
 
 OrderBook::OrderBook(size_t initialPoolCapacity)
     : m_pool(initialPoolCapacity) {
@@ -354,4 +354,4 @@ L2Snapshot OrderBook::getL2Snapshot(size_t depth) const {
     return snapshot;
 }
 
-} // namespace nexus
+} // namespace noxus

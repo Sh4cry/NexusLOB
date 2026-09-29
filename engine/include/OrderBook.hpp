@@ -10,7 +10,7 @@
 #include <optional>
 #include <functional>
 
-namespace nexus {
+namespace noxus {
 
 class OrderBook {
 public:
@@ -66,4 +66,4 @@ private:
     OrderPool m_pool;
 };
 
-} // namespace nexus
+} // namespace noxus

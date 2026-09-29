@@ -5,7 +5,7 @@
 #include <vector>
 #include <chrono>
 
-namespace nexus {
+namespace noxus {
 
 using OrderId = uint64_t;
 using Price = uint32_t;       // Stored in basis points or cents (e.g. $100.50 -> 10050)
@@ -67,6 +67,6 @@ struct L2Snapshot {
     std::vector<LevelSummary> asks;
 };
 
-} // namespace nexus
+} // namespace noxus
 
-namespace noxus = nexus;
+namespace nexus = noxus;
