@@ -2,7 +2,7 @@
 #include <iostream>
 #include <cassert>
 
-using namespace nexus;
+using namespace noxus;
 
 void testBasicInsertion() {
     std::cout << "[TEST] Running testBasicInsertion... ";
@@ -139,7 +139,7 @@ void testFillOrKill() {
 
 int main() {
     std::cout << "==========================================\n";
-    std::cout << "   NexusLOB Matching Engine Unit Tests    \n";
+    std::cout << "   NoxusLOB Matching Engine Unit Tests    \n";
     std::cout << "==========================================\n";
 
     testBasicInsertion();

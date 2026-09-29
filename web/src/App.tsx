@@ -36,7 +36,7 @@ export const App: React.FC = () => {
 
       ws.onopen = () => {
         setIsConnected(true);
-        console.log('[NexusLOB] WebSocket Connected');
+        console.log('[NoxusLOB] WebSocket Connected');
       };
 
       ws.onmessage = (event) => {
@@ -56,7 +56,7 @@ export const App: React.FC = () => {
 
       ws.onclose = () => {
         setIsConnected(false);
-        console.log('[NexusLOB] WebSocket Closed. Reconnecting in 2s...');
+        console.log('[NoxusLOB] WebSocket Closed. Reconnecting in 2s...');
         reconnectTimer.current = window.setTimeout(connectWebSocket, 2000);
       };
 
@@ -211,10 +211,10 @@ export const App: React.FC = () => {
           <div className="bg-surface rounded-xl border border-surfaceBorder p-6 shadow-lg space-y-4">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <Code2 className="w-6 h-6 text-brandCyan" />
-              NexusLOB Engineering Design & Architecture
+              NoxusLOB Engineering Design & Architecture
             </h2>
             <p className="text-slate-300 text-sm leading-relaxed">
-              NexusLOB is designed from the ground up for high-frequency trading and low-latency financial systems engineering. It showcases key computer science and systems fundamentals: cache locality, memory pools, intrusive data structures, lock-free patterns, and FFI inter-process communication.
+              NoxusLOB is designed from the ground up for high-frequency trading and low-latency financial systems engineering. It showcases key computer science and systems fundamentals: cache locality, memory pools, intrusive data structures, lock-free patterns, and FFI inter-process communication.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -255,7 +255,7 @@ export const App: React.FC = () => {
               </h3>
               <ul className="text-xs text-slate-300 space-y-2 list-disc list-inside">
                 <li>
-                  <strong className="text-white">High-Performance Systems (C++20):</strong> Architected an ultra-low-latency price-time priority Limit Order Book matching engine in C++20, achieving <strong>3.99M operations/second</strong> with a median latency of <strong>100 nanoseconds</strong> and a p99 tail latency under <strong>0.80 µs</strong>.
+                  <strong className="text-white">High-Performance Systems (C++20):</strong> Architected a low-latency price-time priority Limit Order Book matching engine in C++20, achieving <strong>3.99M operations/second</strong> with a median latency of <strong>100 nanoseconds</strong> and a p99 tail latency under <strong>0.80 µs</strong>.
                 </li>
                 <li>
                   <strong className="text-white">Zero-Allocation Data Structures:</strong> Eliminated heap allocation overhead during trading execution by engineering a custom contiguous slab memory pool and intrusive doubly-linked price queues for \(O(1)\) order cancellations.

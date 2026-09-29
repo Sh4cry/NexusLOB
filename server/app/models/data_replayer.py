@@ -8,7 +8,7 @@ from app.engine_bridge import EngineBridge
 class HistoricalDataReplayer:
     """
     Replays historical market tick data (CSV format) directly through
-    the NexusLOB matching engine.
+    the NoxusLOB matching engine.
     Supports any dataset with columns: [timestamp, side, price, quantity, order_type]
     """
 

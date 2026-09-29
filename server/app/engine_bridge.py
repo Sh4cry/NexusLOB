@@ -32,6 +32,10 @@ class EngineBridge:
         # Try to locate the compiled C++ DLL
         search_paths = [
             dll_path,
+            os.path.join(os.path.dirname(__file__), "..", "..", "engine", "noxus_engine.dll"),
+            os.path.join(os.path.dirname(__file__), "..", "..", "engine", "build", "noxus_engine.dll"),
+            os.path.join(os.path.dirname(__file__), "..", "..", "engine", "libnoxus_engine.so"),
+            os.path.join(os.path.dirname(__file__), "..", "..", "engine", "libnoxus_engine.dylib"),
             os.path.join(os.path.dirname(__file__), "..", "..", "engine", "nexus_engine.dll"),
             os.path.join(os.path.dirname(__file__), "..", "..", "engine", "build", "nexus_engine.dll"),
             os.path.join(os.path.dirname(__file__), "..", "..", "engine", "libnexus_engine.so"),
@@ -48,7 +52,7 @@ class EngineBridge:
             try:
                 self.lib = ctypes.CDLL(lib_file)
                 self._setup_ffi()
-                self._handle = self.lib.nexus_create_book(200000)
+                self._handle = getattr(self.lib, "noxus_create_book", self.lib.nexus_create_book)(200000)
                 self.is_cpp_backend = True
                 print(f"[EngineBridge] Successfully loaded C++ Low-Latency Engine: {lib_file}")
             except Exception as e:
@@ -59,6 +63,17 @@ class EngineBridge:
             self._init_python_fallback()
 
     def _setup_ffi(self):
+        # Map both noxus_* and nexus_* prefixes
+        for name in [
+            "create_book", "destroy_book", "clear_book", "add_order",
+            "cancel_order", "modify_order", "has_order", "order_count",
+            "get_bbo", "get_l2_depth"
+        ]:
+            fn = getattr(self.lib, f"noxus_{name}", getattr(self.lib, f"nexus_{name}", None))
+            if fn:
+                setattr(self.lib, f"noxus_{name}", fn)
+                setattr(self.lib, f"nexus_{name}", fn)
+
         self.lib.nexus_create_book.argtypes = [ctypes.c_uint32]
         self.lib.nexus_create_book.restype = ctypes.c_void_p
 

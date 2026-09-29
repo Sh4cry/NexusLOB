@@ -1,8 +1,11 @@
 import csv
 import random
 import time
+import os
 
-def generate_sample_ticks(filename="d:/nexus-lob/data/sample_btc_ticks.csv", num_ticks=2000):
+DEFAULT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sample_btc_ticks.csv")
+
+def generate_sample_ticks(filename=DEFAULT_FILE, num_ticks=2000):
     mid = 65000.0
     now = time.time_ns()
 

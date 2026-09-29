@@ -36,12 +36,12 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-base tracking-wide text-white">NEXUS<span className="text-brandCyan">LOB</span></h1>
+              <h1 className="font-bold text-base tracking-wide text-white">NOXUS<span className="text-brandCyan">LOB</span></h1>
               <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-brandCyan/10 text-brandCyan border border-brandCyan/20">
                 v1.1
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">Ultra-Low Latency C++20 Matching Engine</p>
+            <p className="text-[11px] text-slate-400">Low-Latency C++20 Matching Engine</p>
           </div>
         </div>
 

@@ -1,11 +1,11 @@
 <div align="center">
 
-# ⚡ NexusLOB
-### Ultra-Low-Latency Order Matching Engine & Real-Time Quantitative Trading Platform
+# ⚡ NoxusLOB
+### Low-Latency Order Matching Engine & Real-Time Quantitative Trading Platform
 
 [![CI Pipeline](https://img.shields.io/badge/CI-Passing-00E599?style=for-the-badge&logo=github-actions&logoColor=white)](.github/workflows/ci.yml)
 [![Standard](https://img.shields.io/badge/C%2B%2B-20-007ACC?style=for-the-badge&logo=c%2B%2B&logoColor=white)](https://en.cppreference.com/w/cpp/20)
-[![Version](https://img.shields.io/badge/Release-v1.1.1-00E599?style=for-the-badge)](https://github.com/Sh4cry/NexusLOB)
+[![Version](https://img.shields.io/badge/Release-v1.1.1-00E599?style=for-the-badge)](https://github.com/Sh4cry/NoxusLOB)
 [![Throughput](https://img.shields.io/badge/Throughput->4.0M%20ops%2Fsec-FF3B69?style=for-the-badge&logo=speedtest&logoColor=white)](#benchmarks)
 [![Latency](https://img.shields.io/badge/p99%20Latency-<0.80%20µs-7928CA?style=for-the-badge)](#benchmarks)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
@@ -20,7 +20,7 @@
 
 ## 🎯 Executive Overview
 
-NexusLOB is a production-grade, deterministic Limit Order Book (LOB) matching engine designed to solve the latency bottlenecks found in modern financial exchange systems.
+NoxusLOB is a production-grade, deterministic Limit Order Book (LOB) matching engine designed to solve the latency bottlenecks found in modern financial exchange systems.
 
 Built around **price-time priority (FIFO)** semantics, the engine eliminates memory allocations along the hot execution path by utilizing a custom contiguous slab allocator and intrusive doubly-linked queues. It achieves **> 4.0 million order operations per second** with **100 nanosecond median latency** and a **sub-microsecond ($<0.80\,\mu\text{s}$) 99th percentile tail latency bound**.
 
@@ -39,7 +39,7 @@ Built around **price-time priority (FIFO)** semantics, the engine eliminates mem
                                                │ Zero-Copy C-ABI FFI
                                                ▼
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        C++20 CORE MATCHING ENGINE (nexus_engine)                       │
+│                        C++20 CORE MATCHING ENGINE (noxus_engine)                       │
 │                                                                                        │
 │   ┌──────────────────────┐    ┌──────────────────────┐    ┌────────────────────────┐   │
 │   │   OrderPool (Slab)   │    │  Intrusive Doubly    │    │   Price-Time FIFO      │   │
@@ -101,8 +101,8 @@ Prerequisites: Python 3.10+ (and optional C++ compiler like `g++` or `clang++`).
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/Sh4cry/NexusLOB.git
-cd NexusLOB
+git clone https://github.com/Sh4cry/NoxusLOB.git
+cd NoxusLOB
 
 # 2. Install Python dependencies
 pip install -r server/requirements.txt
@@ -140,7 +140,7 @@ Access the application at `http://localhost:8000`.
 ## 📁 Repository Structure
 
 ```
-nexus-lob/
+noxus-lob/
 ├── engine/                       # Core C++20 Low-Latency Matching Engine
 │   ├── include/
 │   │   ├── Types.hpp             # Order types, timestamps, fixed-point prices
@@ -191,7 +191,7 @@ nexus-lob/
 If you are a recruiter or hiring manager reviewing this project for an internship or new grad role, here are the core competencies demonstrated:
 
 - **Low-Latency Systems Engineering**:
-  - *Engineered an ultra-low-latency price-time priority Limit Order Book matching engine in C++20, achieving >4.0M operations/sec with 100ns median latency and sub-microsecond ($p99 < 0.80\,\mu\text{s}$) tail latency.*
+  - *Engineered a low-latency price-time priority Limit Order Book matching engine in C++20, achieving >4.0M operations/sec with 100ns median latency and sub-microsecond ($p99 < 0.80\,\mu\text{s}$) tail latency.*
   - *Eliminated dynamic heap allocation in the order execution path by architecting a custom contiguous slab memory pool and intrusive doubly linked list queues for $O(1)$ order cancellations.*
 - **High-Performance Networking & Full-Stack**:
   - *Constructed an event-driven market data gateway in FastAPI/WebSockets streaming L2 snapshots and trade ticks at 20–60 Hz to an institutional React/TypeScript dashboard with HTML5 canvas depth visualization.*

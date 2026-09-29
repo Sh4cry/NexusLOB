@@ -68,3 +68,5 @@ struct L2Snapshot {
 };
 
 } // namespace nexus
+
+namespace noxus = nexus;

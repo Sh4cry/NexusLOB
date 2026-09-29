@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NexusLOB Master Launcher & Benchmark Utility
+NoxusLOB Master Launcher & Benchmark Utility
 -------------------------------------------
 Usage:
   python run.py             # Start the full trading platform (Engine + Gateway + UI)
@@ -36,14 +36,14 @@ def find_gxx():
     return None
 
 def build_engine():
-    dll_path = os.path.join(ENGINE_DIR, "nexus_engine.dll")
+    dll_path = os.path.join(ENGINE_DIR, "noxus_engine.dll")
     if os.path.exists(dll_path):
         return True
 
     gxx = find_gxx()
     if not gxx:
         print("[!] Warning: g++ compiler not found in PATH or standard MSYS2 locations.")
-        print("[*] NexusLOB will run with the built-in high-performance Python engine.")
+        print("[*] NoxusLOB will run with the built-in high-performance Python engine.")
         return False
 
     print(f"[*] Compiling C++20 engine with {gxx}...")
@@ -70,7 +70,7 @@ def build_engine():
 
 def run_tests():
     print("=" * 60)
-    print("  RUNNING NEXUSLOB COMPLETE TEST SUITE")
+    print("  RUNNING NOXUSLOB COMPLETE TEST SUITE")
     print("=" * 60)
 
     # 1. C++ Matching Engine Tests
@@ -120,7 +120,7 @@ def start_server():
 
     import uvicorn
     print("\n" + "=" * 60)
-    print("  NEXUSLOB TRADING PLATFORM READY")
+    print("  NOXUSLOB TRADING PLATFORM READY")
     print("  Terminal URL: http://localhost:8000")
     print("  API Docs    : http://localhost:8000/docs")
     print("  WebSocket   : ws://localhost:8000/ws/market-data")
@@ -138,7 +138,7 @@ def start_server():
     uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="NexusLOB Master Launcher")
+    parser = argparse.ArgumentParser(description="NoxusLOB Master Launcher")
     parser.add_argument("--test", action="store_true", help="Run unit tests")
     parser.add_argument("--bench", action="store_true", help="Run C++ latency benchmark")
     parser.add_argument("--orders", type=int, default=500000, help="Order count for benchmark")

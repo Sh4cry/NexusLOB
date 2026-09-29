@@ -145,8 +145,8 @@ async def lifespan(app: FastAPI):
     broadcaster_task.cancel()
 
 app = FastAPI(
-    title="NexusLOB Real-Time Matching Engine Gateway",
-    description="Ultra-low latency institutional limit order book matching engine with adaptive quantitative models",
+    title="NoxusLOB Real-Time Matching Engine Gateway",
+    description="Low-latency institutional limit order book matching engine with adaptive quantitative models",
     version="1.1.0",
     lifespan=lifespan,
 )

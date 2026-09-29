@@ -7,7 +7,7 @@
 #include <numeric>
 #include <iomanip>
 
-using namespace nexus;
+using namespace noxus;
 
 struct BenchmarkResult {
     size_t totalOrders{0};
@@ -125,7 +125,7 @@ int main(int argc, char* argv[]) {
     }
 
     std::cout << "===========================================================\n";
-    std::cout << "     NexusLOB Ultra-Low Latency Benchmark Suite            \n";
+    std::cout << "     NoxusLOB Low-Latency Benchmark Suite                 \n";
     std::cout << "===========================================================\n";
     std::cout << "Running workload of " << orderCount << " mixed operations...\n";
 

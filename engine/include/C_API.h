@@ -8,10 +8,11 @@ extern "C" {
 #endif
 
 #ifdef _WIN32
-#define NEXUS_EXPORT __declspec(dllexport)
+#define NOXUS_EXPORT __declspec(dllexport)
 #else
-#define NEXUS_EXPORT __attribute__((visibility("default")))
+#define NOXUS_EXPORT __attribute__((visibility("default")))
 #endif
+#define NEXUS_EXPORT NOXUS_EXPORT
 
 #pragma pack(push, 1)
 typedef struct {
@@ -30,6 +31,41 @@ typedef struct {
 } CLevel;
 #pragma pack(pop)
 
+// Primary Noxus C API
+NOXUS_EXPORT void* noxus_create_book(uint32_t capacity);
+NOXUS_EXPORT void noxus_destroy_book(void* bookPtr);
+NOXUS_EXPORT void noxus_clear_book(void* bookPtr);
+
+NOXUS_EXPORT int noxus_add_order(
+    void* bookPtr,
+    uint64_t id,
+    uint8_t side,
+    uint8_t type,
+    uint32_t price,
+    uint32_t qty,
+    uint64_t ts,
+    CTrade* outTrades,
+    uint32_t maxTrades,
+    uint32_t* outTradeCount
+);
+
+NOXUS_EXPORT bool noxus_cancel_order(void* bookPtr, uint64_t id);
+NOXUS_EXPORT bool noxus_modify_order(void* bookPtr, uint64_t id, uint32_t newQty);
+NOXUS_EXPORT bool noxus_has_order(void* bookPtr, uint64_t id);
+
+NOXUS_EXPORT uint32_t noxus_order_count(void* bookPtr);
+NOXUS_EXPORT bool noxus_get_bbo(void* bookPtr, uint32_t* outBid, uint32_t* outAsk);
+
+NOXUS_EXPORT void noxus_get_l2_depth(
+    void* bookPtr,
+    uint32_t maxLevels,
+    CLevel* outBids,
+    uint32_t* outBidCount,
+    CLevel* outAsks,
+    uint32_t* outAskCount
+);
+
+// Backward Compatibility Aliases
 NEXUS_EXPORT void* nexus_create_book(uint32_t capacity);
 NEXUS_EXPORT void nexus_destroy_book(void* bookPtr);
 NEXUS_EXPORT void nexus_clear_book(void* bookPtr);

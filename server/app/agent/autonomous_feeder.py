@@ -10,7 +10,7 @@ class AutonomousFeederAgent:
     Background Autonomous Agent.
     Continuously monitors the screen (via Windows UI Automation) or a live webpage feed
     without taking screenshots, and automatically feeds the extracted market data into
-    the NexusLOB matching engine in real time.
+    the NoxusLOB matching engine in real time.
     """
 
     def __init__(self, engine: EngineBridge):

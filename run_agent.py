@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-NexusLOB Background Autonomous Agent
+NoxusLOB Background Autonomous Agent
 ------------------------------------
 Monitors the screen directly (via Windows UI Automation without screenshots)
 or live financial web feeds, extracting market data and feeding it into the
-NexusLOB C++20 matching engine.
+NoxusLOB C++20 matching engine.
 
 Usage:
   python run_agent.py --mode screen            # Read directly from screen UI tree
@@ -26,7 +26,7 @@ from app.engine_bridge import EngineBridge
 from app.agent.autonomous_feeder import AutonomousFeederAgent
 
 async def main():
-    parser = argparse.ArgumentParser(description="NexusLOB Background Screen & Web Agent")
+    parser = argparse.ArgumentParser(description="NoxusLOB Background Screen & Web Agent")
     parser.add_argument("--mode", choices=["screen", "web"], default="web",
                         help="Data source: 'screen' (Windows UI Automation) or 'web' (Direct Web Feed)")
     parser.add_argument("--symbol", default="BTCUSDT", help="Trading symbol for web feed mode (e.g. BTCUSDT, ETHUSDT)")
@@ -36,7 +36,7 @@ async def main():
     mode_mapped = "SCREEN_UIA" if args.mode == "screen" else "WEB_FEED"
 
     print("=" * 65)
-    print("   NEXUSLOB AUTONOMOUS BACKGROUND AGENT (ZERO-SCREENSHOT)       ")
+    print("   NOXUSLOB AUTONOMOUS BACKGROUND AGENT (ZERO-SCREENSHOT)       ")
     print("=" * 65)
     print(f"Mode    : {mode_mapped}")
     print(f"Target  : {args.symbol if mode_mapped == 'WEB_FEED' else 'Active Windows Screen UI Tree'}")
