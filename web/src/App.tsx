@@ -135,9 +135,9 @@ export const App: React.FC = () => {
         <div className="hidden sm:flex items-center gap-3 text-slate-400 font-mono text-[11px]">
           <span>FIFO Price-Time Priority</span>
           <span>•</span>
-          <span>Zero-Allocation Memory Pools</span>
+          <span>Pre-Allocated Order Slab Pools</span>
           <span>•</span>
-          <span className="text-emerald-400">&gt; 3.9M Ops/Sec</span>
+          <span className="text-emerald-400">~3.5M Ops/Sec</span>
         </div>
       </div>
 
@@ -226,9 +226,9 @@ export const App: React.FC = () => {
               </div>
 
               <div className="bg-background p-4 rounded-lg border border-surfaceBorder space-y-2">
-                <h3 className="font-bold text-sm text-emerald-400">2. Zero-Allocation Memory Pool</h3>
+                <h3 className="font-bold text-sm text-emerald-400">2. Pre-Allocated Order Slab Pool</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Pre-allocates contiguous slabs of <code className="text-slate-200">Order</code> objects to eliminate all <code className="text-slate-200">malloc()</code> and <code className="text-slate-200">free()</code> overhead on the trading critical path, preventing memory fragmentation and allocator lock contention.
+                  Pre-allocates contiguous slabs of <code className="text-slate-200">Order</code> objects to eliminate dynamic node allocation churn (<code className="text-slate-200">malloc()</code>/<code className="text-slate-200">free()</code>) on the trading critical path, minimizing memory fragmentation and allocator contention.
                 </p>
               </div>
 
@@ -255,16 +255,16 @@ export const App: React.FC = () => {
               </h3>
               <ul className="text-xs text-slate-300 space-y-2 list-disc list-inside">
                 <li>
-                  <strong className="text-white">High-Performance Systems (C++20):</strong> Architected a low-latency price-time priority Limit Order Book matching engine in C++20, achieving <strong>3.99M operations/second</strong> with a median latency of <strong>100 nanoseconds</strong> and a p99 tail latency under <strong>0.80 µs</strong>.
+                  <strong className="text-white">High-Performance Systems (C++20):</strong> Architected a low-latency price-time priority Limit Order Book matching engine in C++20, achieving <strong>3.52M operations/second</strong> throughput with a median latency of <strong>0.20 µs</strong> and a p99 tail latency of <strong>0.94 µs</strong> in isolated benchmarks.
                 </li>
                 <li>
-                  <strong className="text-white">Zero-Allocation Data Structures:</strong> Eliminated heap allocation overhead during trading execution by engineering a custom contiguous slab memory pool and intrusive doubly-linked price queues for \(O(1)\) order cancellations.
+                  <strong className="text-white">Order-Node Memory Pool:</strong> Eliminated dynamic order-node allocation churn during trading execution by engineering a custom contiguous slab memory pool and intrusive doubly-linked price queues for \(O(1)\) order cancellations.
                 </li>
                 <li>
                   <strong className="text-white">Full-Stack & Real-Time Telemetry:</strong> Built an event-driven market data gateway in FastAPI/WebSockets streaming L2 book updates at 20Hz to a high-framerate React/Vite trading terminal featuring interactive depth charts and microsecond latency profiling.
                 </li>
                 <li>
-                  <strong className="text-white">Quantitative Microstructure Modeling:</strong> Designed a synthetic market maker simulating realistic high-frequency order flow, bid-ask spreads, and cancellation cascades using a 3-state discrete-time Markov chain.
+                  <strong className="text-white">Quantitative Microstructure Modeling:</strong> Designed synthetic market makers implementing the Avellaneda-Stoikov inventory model and a 3-state discrete-time Markov chain to simulate realistic order arrival and spread dynamics.
                 </li>
               </ul>
             </div>

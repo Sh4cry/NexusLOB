@@ -108,6 +108,7 @@ To ensure credible, reproducible measurements without timing skew:
 2. **CPU Cache Warm-Up**: 10,000 warm-up operations prime instruction caches and branch predictors before measurement begins.
 3. **Isolated Latency Sampling**: Per-operation latency is measured with `std::chrono::high_resolution_clock` into a pre-allocated vector to prevent `push_back()` heap reallocations during measurement.
 4. **Repeated Run Variance**: Evaluated across 5 consecutive benchmark runs to report mean throughput and standard deviation.
+5. **Full Engine Operation Measured**: The benchmark captures the complete end-to-end operation of the matching engine on each tick: order pool node acquisition, price level tree traversal, intrusive queue insertion/unlinking, matching logic, and populating the returned `std::vector<Trade>` for fills (order instances are recycled from the pre-allocated slab pool, avoiding order-node heap churn).
 
 ### Tested Environment
 - **CPU**: Intel(R) Core(TM) Ultra 7 256V (8 Cores, 8 Threads @ 2.20 GHz, Lunar Lake)
