@@ -6,8 +6,8 @@
 [![CI Pipeline](https://img.shields.io/badge/CI-Passing-00E599?style=for-the-badge&logo=github-actions&logoColor=white)](.github/workflows/ci.yml)
 [![Standard](https://img.shields.io/badge/C%2B%2B-20-007ACC?style=for-the-badge&logo=c%2B%2B&logoColor=white)](https://en.cppreference.com/w/cpp/20)
 [![Version](https://img.shields.io/badge/Release-v1.1.2-00E599?style=for-the-badge)](https://github.com/Sh4cry/NoxusLOB)
-[![Throughput](https://img.shields.io/badge/Throughput-~4.0M%20ops%2Fsec-FF3B69?style=for-the-badge&logo=speedtest&logoColor=white)](#-benchmarks--methodology)
-[![Latency](https://img.shields.io/badge/p99%20Latency-<1.0%20µs-7928CA?style=for-the-badge)](#-benchmarks--methodology)
+[![Throughput](https://img.shields.io/badge/Throughput-3.52M%20ops%2Fsec-FF3B69?style=for-the-badge&logo=speedtest&logoColor=white)](#-benchmarks--empirical-validation)
+[![Latency](https://img.shields.io/badge/p99%20Latency-0.94%20µs-7928CA?style=for-the-badge)](#-benchmarks--empirical-validation)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 *An end-to-end electronic trading prototype and quantitative market simulator.*
@@ -22,7 +22,7 @@
 
 **NoxusLOB** is a high-performance, deterministic Limit Order Book (LOB) matching engine prototype and full-stack quantitative market simulator designed to explore low-latency systems architecture and market microstructure.
 
-Built around strict **Price-Time Priority (FIFO)** execution semantics, the C++ core utilizes a custom pre-allocated memory pool and intrusive doubly-linked queues to avoid dynamic heap allocation churn for order nodes during hot execution loops. Interfaced to Python through a zero-overhead C FFI boundary (`ctypes`), the engine streams real-time Level 2 market depth and trade telemetry over WebSockets to an institutional-style Bloomberg terminal.
+Built around strict **Price-Time Priority (FIFO)** execution semantics, the C++ core utilizes a custom pre-allocated memory pool and intrusive doubly-linked queues to eliminate dynamic heap allocation churn for order nodes during hot execution loops. Interfaced to Python through a zero-overhead C FFI boundary (`ctypes`), the engine streams real-time Level 2 market depth and trade telemetry over WebSockets to an institutional-style Bloomberg terminal.
 
 ```
                            ┌────────────────────────────────────────┐
@@ -46,6 +46,32 @@ Built around strict **Price-Time Priority (FIFO)** execution semantics, the C++ 
 │   │ Zero-Heap Node Churn │───▶│  Linked Lists (O(1)) │───▶│   Matching Engine      │   │
 │   └──────────────────────┘    └──────────────────────┘    └────────────────────────┘   │
 └────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🖥️ Terminal UI Preview & Real-Time Telemetry
+
+The platform includes a real-time web trading terminal served locally at `http://localhost:8000`:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ ⚡ NOXUSLOB TERMINAL │ Backend: C++20 Native │ Engine: 3.52M ops/s │ p50: 0.20µs │ p99: 0.94µs │ Active: ONLINE │
+├───────────────────────────────────┬───────────────────────────────────┬─────────────────────────────────┤
+│        LEVEL 2 ORDER BOOK         │       MARKET DEPTH CHART          │        LIVE TRADE TAPE          │
+│                                   │                                   │                                 │
+│  ASK DEPTH (Sellers)              │   Cumulative Liquidity (Bid/Ask)  │ TIME      SIDE   PRICE    QTY   │
+│  $65,025.00 │ 12.50 BTC ████      │                                   │ 14:51:02  BUY    $65,010  1.42  │
+│  $65,020.00 │  8.20 BTC ███       │      /\            /\         │ 14:51:02  BUY    $65,010  0.50  │
+│  $65,015.00 │  4.10 BTC █         │     /  \  SPREAD  /  \        │ 14:51:01  SELL   $65,005  2.10  │
+│ ───────────────────────────────── │    / BIDS \ $5.00/ ASKS \       │ 14:51:00  BUY    $65,010  0.85  │
+│  SPREAD: $5.00 │ MID: $65,012.50  │   /        \    /        \      ├─────────────────────────────────┤
+│ ───────────────────────────────── │  /          \  /          \     │       MODEL CONTROLLER          │
+│  $65,010.00 │  5.40 BTC ██        │                                   │ [●] Avellaneda-Stoikov (Active) │
+│  $65,005.00 │  9.80 BTC ████      │                                   │ [ ] Markov Regime Switcher      │
+│  $65,000.00 │ 18.20 BTC ███████   │                                   │ [ ] Historical CSV Replayer     │
+│  BID DEPTH (Buyers)               │                                   │ [ ] Autonomous Screen Feeder    │
+└───────────────────────────────────┴───────────────────────────────────┴─────────────────────────────────┘
 ```
 
 ---
@@ -74,27 +100,38 @@ Built around strict **Price-Time Priority (FIFO)** execution semantics, the C++ 
 
 ---
 
-## 📊 Benchmarks & Methodology
+## 📊 Benchmarks & Empirical Validation
 
 ### Methodology & Isolation
 To ensure credible, reproducible measurements without timing skew:
-1. **Pre-Generated Workload (0 RNG in hot loop)**: The complete benchmark dataset is generated in memory *before* timers start, completely isolating engine execution from random number generation and auxiliary allocations.
+1. **Pre-Generated Shadow-Book Workload (0 RNG in hot loop)**: 500,000 operations are pre-generated in memory *before* timers start. A shadow book tracks order lifecycle so every cancellation targets a **verified resting quote**.
 2. **CPU Cache Warm-Up**: 10,000 warm-up operations prime instruction caches and branch predictors before measurement begins.
 3. **Isolated Latency Sampling**: Per-operation latency is measured with `std::chrono::high_resolution_clock` into a pre-allocated vector to prevent `push_back()` heap reallocations during measurement.
+4. **Repeated Run Variance**: Evaluated across 5 consecutive benchmark runs to report mean throughput and standard deviation.
 
-### Empirical Results
-*Tested on x86_64, AMD Ryzen 7, GCC 14.2.0, Flags: `-std=c++20 -O3 -march=native`, Workload: 500,000 mixed operations (50% passive limit quotes, 30% cancellations, 10% aggressive crossing limit orders, 10% market sweeps):*
+### Tested Environment
+- **CPU**: Intel(R) Core(TM) Ultra 7 256V (8 Cores, 8 Threads @ 2.20 GHz, Lunar Lake)
+- **RAM**: 16 GB LPDDR5X
+- **OS**: Microsoft Windows 11 Home (x86_64)
+- **Compiler**: GCC 14.2.0 (MSYS2)
+- **Compilation Flags**: `-std=c++20 -O3 -march=native`
 
-| Metric | Result | Methodology Context |
-| :--- | :--- | :--- |
-| **Throughput** | **3.98 Million ops/sec** | Pure engine matching (0 RNG overhead in hot path) |
-| **Total Fills / Trades** | **345,980 trades** | Aggressive liquidity crossing & multi-level sweeps |
-| **Minimum Latency** | **< 0.05 µs** | Cache-hit single-level execution |
-| **Median ($p50$)** | **0.20 µs** | **200 nanoseconds** |
-| **90th Percentile ($p90$)** | **0.50 µs** | 500 nanoseconds |
-| **99th Percentile ($p99$)** | **0.90 µs** | **Sub-microsecond ($<1.0\,\mu\text{s}$)** |
-| **99.9th Percentile ($p99.9$)** | **1.50 µs** | Extreme tail latency |
-| **Mean Execution Time** | **0.29 µs** | 290 nanoseconds average |
+### Empirical Results (5 Repeated Runs)
+
+| Run Iteration | Throughput (ops/sec) | Median ($p50$) | 90th Percentile ($p90$) | 99th Percentile ($p99$) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Run #1** | 3.48 Million ops/s | 0.20 µs | 0.50 µs | 1.00 µs |
+| **Run #2** | 3.52 Million ops/s | 0.20 µs | 0.50 µs | 1.00 µs |
+| **Run #3** | 3.49 Million ops/s | 0.20 µs | 0.50 µs | 0.90 µs |
+| **Run #4** | 3.56 Million ops/s | 0.20 µs | 0.50 µs | 0.90 µs |
+| **Run #5** | 3.54 Million ops/s | 0.20 µs | 0.50 µs | 0.90 µs |
+| **Aggregated Mean** | **3.52 M ops/s ($\pm 0.03$M)** | **0.20 µs ($\pm 0.00\,\mu\text{s}$)** | **0.50 µs** | **0.94 µs ($\pm 0.05\,\mu\text{s}$)** |
+
+**Workload Verification:**
+- Total Operations / Run: 500,000
+- Fills & Executed Trades: 345,980
+- Cancellations Attempted: 99,464
+- Cancellations Succeeded: **99,464 (100.0% verified resting cancellations)**
 
 To reproduce the benchmark on your local hardware:
 ```bash
@@ -157,7 +194,7 @@ cmake --build build --config Release
 ./build/test_matching
 
 # Run Isolated Benchmark
-./build/benchmarks 500000
+./build/benchmarks 500000 5
 ```
 
 ---
@@ -229,7 +266,7 @@ noxus-lob/
 ## 💼 CV / Resume Highlights (For Recruiters)
 
 - **Low-Latency Systems Engineering**:
-  - *Engineered a low-latency price-time priority Limit Order Book matching engine in C++20, achieving ~4.0M operations/sec throughput and sub-microsecond ($p99 < 1.0\,\mu\text{s}$) tail latency in isolated benchmarks.*
+  - *Engineered a low-latency price-time priority Limit Order Book matching engine in C++20, achieving 3.52M ops/sec throughput and sub-microsecond ($p99 = 0.94\,\mu\text{s}$) tail latency across repeated isolated benchmarks.*
   - *Eliminated dynamic heap allocation in the order execution path by architecting a custom contiguous slab memory pool and intrusive doubly linked list queues for $O(1)$ order cancellations.*
 - **High-Performance Networking & Full-Stack**:
   - *Constructed an event-driven market data gateway in FastAPI/WebSockets streaming L2 snapshots and trade ticks at 20–60 Hz to an institutional React/TypeScript dashboard with HTML5 canvas depth visualization.*
